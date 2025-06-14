@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,252 +50,204 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { createClient } from "../../../utils/supabase/client";
+import { toast } from "sonner";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
-// Mock data for demonstration - expanded to show pagination
-const mockCustomers = [
-  {
-    id: "1",
-    name: "ABC Construction Co.",
-    address: "123 Main Street, Downtown, NY 10001",
-    email: "contact@abcconstruction.com",
-    phone: "(555) 123-4567",
-  },
-  {
-    id: "2",
-    name: "Smith Residential",
-    address: "456 Oak Avenue, Suburbia, NY 10002",
-    email: "info@smithresidential.com",
-    phone: "(555) 234-5678",
-  },
-  {
-    id: "3",
-    name: "Metro Office Complex",
-    address: "789 Business Blvd, Metro City, NY 10003",
-    email: "facilities@metrooffice.com",
-    phone: "(555) 345-6789",
-  },
-  {
-    id: "4",
-    name: "Green Valley Homes",
-    address: "321 Valley Road, Green Valley, NY 10004",
-    email: "admin@greenvalleyhomes.com",
-    phone: "(555) 456-7890",
-  },
-  {
-    id: "5",
-    name: "Tech Startup Inc.",
-    address: "654 Innovation Drive, Tech Park, NY 10005",
-    email: "hello@techstartup.com",
-    phone: "(555) 567-8901",
-  },
-  {
-    id: "6",
-    name: "Blue Ocean Enterprises",
-    address: "987 Ocean View, Coastal City, NY 10006",
-    email: "info@blueocean.com",
-    phone: "(555) 678-9012",
-  },
-  {
-    id: "7",
-    name: "Mountain Peak Development",
-    address: "147 Summit Road, Mountain View, NY 10007",
-    email: "contact@mountainpeak.com",
-    phone: "(555) 789-0123",
-  },
-  {
-    id: "8",
-    name: "Riverside Manufacturing",
-    address: "258 River Street, Riverside, NY 10008",
-    email: "admin@riverside.com",
-    phone: "(555) 890-1234",
-  },
-  {
-    id: "9",
-    name: "Sunset Properties",
-    address: "369 Sunset Boulevard, West Side, NY 10009",
-    email: "info@sunsetproperties.com",
-    phone: "(555) 901-2345",
-  },
-  {
-    id: "10",
-    name: "Golden Gate Consulting",
-    address: "741 Golden Gate Avenue, Financial District, NY 10010",
-    email: "hello@goldengate.com",
-    phone: "(555) 012-3456",
-  },
-  {
-    id: "11",
-    name: "Silver Star Industries",
-    address: "852 Silver Star Drive, Industrial Park, NY 10011",
-    email: "contact@silverstar.com",
-    phone: "(555) 123-4567",
-  },
-  {
-    id: "12",
-    name: "Crystal Clear Solutions",
-    address: "963 Crystal Avenue, Clear Lake, NY 10012",
-    email: "info@crystalclear.com",
-    phone: "(555) 234-5678",
-  },
-  {
-    id: "13",
-    name: "Diamond Edge Technologies",
-    address: "159 Diamond Street, Tech Valley, NY 10013",
-    email: "admin@diamondedge.com",
-    phone: "(555) 345-6789",
-  },
-  {
-    id: "14",
-    name: "Emerald City Real Estate",
-    address: "357 Emerald Way, Green District, NY 10014",
-    email: "sales@emeraldcity.com",
-    phone: "(555) 456-7890",
-  },
-  {
-    id: "15",
-    name: "Ruby Red Restaurants",
-    address: "468 Ruby Road, Food District, NY 10015",
-    email: "info@rubyred.com",
-    phone: "(555) 567-8901",
-  },
-];
+interface Customer {
+  id: string;
+  name: string;
+  address: string | null;
+  email: string | null;
+  phone: string | null;
+}
+
+const customerFormSchema = z.object({
+  name: z.string().min(1, "Customer name is required"),
+  email: z.string().email("Invalid email address").nullable(),
+  phone: z.string().nullable(),
+  address: z.string().nullable(),
+});
+
+type CustomerFormValues = z.infer<typeof customerFormSchema>;
 
 const ITEMS_PER_PAGE_OPTIONS = [5, 10, 20, 50];
 
 export default function CustomerPage() {
-  const [customers, setCustomers] = useState(mockCustomers);
-  const [filteredCustomers, setFilteredCustomers] = useState(mockCustomers);
-  const [paginatedCustomers, setPaginatedCustomers] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
+  const [paginatedCustomers, setPaginatedCustomers] = useState<Customer[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingCustomer, setEditingCustomer] = useState<any>(null);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const supabase = createClient();
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
 
-  const [formData, setFormData] = useState({
-    name: "",
-    address: "",
-    email: "",
-    phone: "",
+  const form = useForm<CustomerFormValues>({
+    resolver: zodResolver(customerFormSchema),
+    defaultValues: {
+      name: "",
+      email: null,
+      phone: null,
+      address: null,
+    },
   });
 
-  // Calculate pagination
-  useEffect(() => {
-    const total = Math.ceil(filteredCustomers.length / itemsPerPage);
-    setTotalPages(total);
+  // Fetch customers from Supabase
+  const fetchCustomers = async () => {
+    try {
+      setIsLoading(true);
+      let query = supabase.from("customers").select("*", { count: "exact" });
 
-    // Reset to page 1 if current page is beyond total pages
-    if (currentPage > total && total > 0) {
+      // Apply search filter if searchTerm exists
+      if (searchTerm) {
+        query = query.or(
+          `name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%,address.ilike.%${searchTerm}%`
+        );
+      }
+
+      // Apply pagination
+      const from = (currentPage - 1) * itemsPerPage;
+      const to = from + itemsPerPage - 1;
+
+      const { data, error, count } = await query
+        .order("name", { ascending: true })
+        .range(from, to);
+
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
+
+      console.log("Fetched customers:", data);
+      console.log("Total count:", count);
+      console.log(data, "this is customer");
+
+      setCustomers(data || []);
+      setFilteredCustomers(data || []);
+      setPaginatedCustomers(data || []);
+      setTotalPages(Math.ceil((count || 0) / itemsPerPage));
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+      toast.error("Failed to fetch customers");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCustomers();
+  }, [currentPage, itemsPerPage, searchTerm]);
+
+  // Remove client-side pagination effects since we're using server-side pagination
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
       setCurrentPage(1);
     }
-  }, [filteredCustomers.length, itemsPerPage, currentPage]);
-
-  // Update paginated customers when page or data changes
-  useEffect(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    setPaginatedCustomers(filteredCustomers.slice(startIndex, endIndex));
-  }, [filteredCustomers, currentPage, itemsPerPage]);
+  }, [totalPages, currentPage]);
 
   // Search functionality
   const handleSearch = (term: string) => {
     setSearchTerm(term);
     setCurrentPage(1); // Reset to first page when searching
-
-    if (!term) {
-      setFilteredCustomers(customers);
-    } else {
-      const filtered = customers.filter(
-        customer =>
-          customer.name.toLowerCase().includes(term.toLowerCase()) ||
-          customer.email.toLowerCase().includes(term.toLowerCase()) ||
-          customer.phone.includes(term) ||
-          customer.address.toLowerCase().includes(term.toLowerCase())
-      );
-      setFilteredCustomers(filtered);
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (editingCustomer) {
-      // Update existing customer
-      const updatedCustomers = customers.map(customer =>
-        customer.id === editingCustomer.id
-          ? { ...editingCustomer, ...formData }
-          : customer
-      );
-      setCustomers(updatedCustomers);
-
-      // Update filtered customers if search is active
-      if (searchTerm) {
-        handleSearch(searchTerm);
-      } else {
-        setFilteredCustomers(updatedCustomers);
-      }
-    } else {
-      // Add new customer
-      const newCustomer = {
-        id: Date.now().toString(), // In real app, this would be generated by the database
-        ...formData,
-      };
-      const updatedCustomers = [...customers, newCustomer];
-      setCustomers(updatedCustomers);
-
-      // Update filtered customers if search is active
-      if (searchTerm) {
-        handleSearch(searchTerm);
-      } else {
-        setFilteredCustomers(updatedCustomers);
-      }
-    }
-
-    // Reset form
-    setFormData({
-      name: "",
-      address: "",
-      email: "",
-      phone: "",
-    });
-    setEditingCustomer(null);
-    setIsDialogOpen(false);
-  };
-
-  const handleEdit = (customer: any) => {
-    setEditingCustomer(customer);
-    setFormData({
-      name: customer.name,
-      address: customer.address,
-      email: customer.email,
-      phone: customer.phone,
-    });
-    setIsDialogOpen(true);
-  };
-
-  const handleDelete = (customer: any) => {
-    const updatedCustomers = customers.filter(c => c.id !== customer.id);
-    setCustomers(updatedCustomers);
-
-    // Update filtered customers if search is active
-    if (searchTerm) {
-      handleSearch(searchTerm);
-    } else {
-      setFilteredCustomers(updatedCustomers);
-    }
   };
 
   const resetForm = () => {
     setEditingCustomer(null);
-    setFormData({
+    form.reset({
       name: "",
-      address: "",
-      email: "",
-      phone: "",
+      email: null,
+      phone: null,
+      address: null,
     });
+  };
+
+  const handleSubmit = async (data: CustomerFormValues) => {
+    try {
+      if (editingCustomer) {
+        // Update existing customer
+        const { error } = await supabase
+          .from("customers")
+          .update({
+            name: data.name.trim(),
+            address: data.address?.trim() || null,
+            email: data.email?.trim() || null,
+            phone: data.phone?.trim() || null,
+          })
+          .eq("id", editingCustomer.id);
+
+        if (error) throw error;
+
+        toast.success("Customer updated successfully");
+      } else {
+        // Add new customer
+        const { error } = await supabase.from("customers").insert([
+          {
+            name: data.name.trim(),
+            address: data.address?.trim() || null,
+            email: data.email?.trim() || null,
+            phone: data.phone?.trim() || null,
+          },
+        ]);
+
+        if (error) throw error;
+
+        toast.success("Customer added successfully");
+      }
+
+      // Refresh the customers list
+      await fetchCustomers();
+
+      // Reset form and close dialog
+      resetForm();
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error("Error saving customer:", error);
+      toast.error("Failed to save customer");
+    }
+  };
+
+  const handleEdit = (customer: Customer) => {
+    setEditingCustomer(customer);
+    form.reset({
+      name: customer.name,
+      email: customer.email,
+      phone: customer.phone,
+      address: customer.address,
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = async (customer: Customer) => {
+    try {
+      const { error } = await supabase
+        .from("customers")
+        .delete()
+        .eq("id", customer.id);
+
+      if (error) throw error;
+
+      toast.success("Customer deleted successfully");
+      await fetchCustomers();
+    } catch (error) {
+      console.error("Error deleting customer:", error);
+      toast.error("Failed to delete customer");
+    }
   };
 
   const handlePageChange = (page: number) => {
@@ -359,9 +310,20 @@ export default function CustomerPage() {
             Manage your customer profiles and contact information
           </p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog
+          open={isDialogOpen}
+          onOpenChange={open => {
+            setIsDialogOpen(open);
+            if (!open) resetForm();
+          }}
+        >
           <DialogTrigger asChild>
-            <Button onClick={resetForm}>
+            <Button
+              onClick={() => {
+                resetForm();
+                setIsDialogOpen(true);
+              }}
+            >
               <Plus className="mr-2 h-4 w-4" />
               Add Customer
             </Button>
@@ -377,63 +339,89 @@ export default function CustomerPage() {
                   : "Add a new customer to your database."}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit}>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Customer Name *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={e =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    placeholder="Enter customer name"
-                    required
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={e =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                    placeholder="customer@example.com"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={e =>
-                      setFormData({ ...formData, phone: e.target.value })
-                    }
-                    placeholder="(555) 123-4567"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="address">Address</Label>
-                  <Textarea
-                    id="address"
-                    value={formData.address}
-                    onChange={e =>
-                      setFormData({ ...formData, address: e.target.value })
-                    }
-                    placeholder="Enter customer address"
-                    rows={3}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button type="submit">
-                  {editingCustomer ? "Update" : "Add"} Customer
-                </Button>
-              </DialogFooter>
-            </form>
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(handleSubmit)}
+                className="space-y-4"
+              >
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Customer Name *</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Enter customer name" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          value={field.value || ""}
+                          type="email"
+                          placeholder="customer@example.com"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          value={field.value || ""}
+                          type="tel"
+                          placeholder="(555) 123-4567"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Address</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          value={field.value || ""}
+                          placeholder="Enter customer address"
+                          rows={3}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <DialogFooter>
+                  <Button type="submit">
+                    {editingCustomer ? "Update" : "Add"} Customer
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
           </DialogContent>
         </Dialog>
       </div>
