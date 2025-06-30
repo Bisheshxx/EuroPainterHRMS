@@ -7,6 +7,7 @@ export type HandleSupabaseErrorResponse<T> = {
   message: string; // Describes the error or success message
   data: T | undefined; // Holds the data if the operation is successful
   success: boolean; // Indicates if the operation was successful
+  count?: number | null;
 };
 
 export async function handleSupabaseError<T>(response: SupabaseResponse<T>) {
@@ -17,6 +18,7 @@ export async function handleSupabaseError<T>(response: SupabaseResponse<T>) {
       message: error.message,
       data: null,
       success: false,
+      count: 0,
     };
   }
   return {

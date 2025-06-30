@@ -6,7 +6,10 @@ import { redirect } from "next/navigation";
 export default async function page() {
   const supabase = await createClient();
   // const user = await supabase.auth.getUser();
-  const profile = await supabase.from("employees").select().single();
+  const profile = await supabase
+    .from("employees")
+    .select("*,jobs(name)")
+    .single();
 
   if (profile.error) {
     redirect("/error");

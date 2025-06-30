@@ -5,10 +5,32 @@ import { Database } from "../../../database.types";
 import { createClient } from "../../../utils/supabase/server";
 
 export const getFromSupabaseTable = async (
-  table: keyof Database["public"]["Tables"]
+  table: keyof Database["public"]["Tables"],
+  page: number = 1,
+  limit: number = 10,
+  filter?: Record<string, any>
 ) => {
   const supabase = await createClient();
-  const response = await supabase.from(table).select();
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  let query = supabase.from(table).select("*", { count: "exact" });
+
+  // Apply filters if provided
+  if (filter) {
+    Object.entries(filter).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        if (key === "name") {
+          query = query.ilike("name", `%${value}%`);
+        } else {
+          query = query.eq(key, value);
+        }
+      }
+    });
+  }
+
+  const response = await query.range(from, to);
+
   return handleSupabaseError(response);
 };
 
@@ -57,4 +79,9 @@ export const getUserAction = async () => {
   const supabase = await createClient();
   const response = await supabase.auth.getUser();
   return response;
+};
+export const getEmployeeAction = async () => {
+  const supabase = await createClient();
+  let response = await supabase.from("employees").select("*");
+  return handleSupabaseError(response);
 };

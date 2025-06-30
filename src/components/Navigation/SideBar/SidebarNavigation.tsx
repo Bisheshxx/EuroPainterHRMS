@@ -16,6 +16,7 @@ import {
   SidebarTrigger,
   SidebarInset,
 } from "@/components/ui/sidebar";
+import { useRouter } from "next/navigation";
 
 const navigationItems = [
   {
@@ -104,7 +105,9 @@ export function SidebarNavigation({ children }: { children: React.ReactNode }) {
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
           <div className="ml-auto">
-            <h1 className="text-lg font-semibold">Dashboard</h1>
+            <h1 className="text-lg font-semibold capitalize">
+              {pathname.split("/")}
+            </h1>
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4">{children}</div>

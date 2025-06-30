@@ -1,13 +1,14 @@
 import { User, UserResponse } from "@supabase/supabase-js";
 import { create } from "zustand";
 import { Tables } from "../../database.types";
+import { Profile } from "@/types/types";
 
 // const user: UserResponse | undefined = undefined;
 interface UserStore {
   user: User | undefined;
   setUser: (user: User) => void;
-  profile: Tables<"employees"> | undefined;
-  setProfile: (profile: Tables<"employees"> | undefined) => void;
+  profile: Profile | undefined;
+  setProfile: (profile: Profile | undefined) => void;
 }
 
 const useUserStore = create<UserStore>(set => ({

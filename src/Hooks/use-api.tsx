@@ -1,20 +1,25 @@
 import { HandleSupabaseErrorResponse } from "@/lib/error.handle.lib";
 import React, { useEffect, useState, useCallback } from "react";
 
-export default function useApi(name: string, getApi: any) {
+export default function useApi(
+  name: string,
+  getApi: any,
+  dependencies: any[] = []
+) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<HandleSupabaseErrorResponse<null> | null>(
     null
   );
   const [data, setData] = useState<any>(null);
+  const [count, setCount] = useState<number>(0);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const response = await getApi();
-      console.log(response, "this is the response");
       if (response.data) {
         setData(response.data);
+        setCount(response.count);
       }
       if (response.error) {
         setError(response);
@@ -34,7 +39,7 @@ export default function useApi(name: string, getApi: any) {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [...dependencies]);
 
-  return { loading, error, data };
+  return { loading, error, data, count };
 }

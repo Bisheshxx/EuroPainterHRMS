@@ -38,7 +38,7 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <SidebarNavigation>{children}</SidebarNavigation>
+            {children}
             <Toaster />
           </ThemeProvider>
         </UserProvider>

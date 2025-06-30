@@ -10,6 +10,7 @@ import { Database } from "../../database.types";
 import { useState, useEffect } from "react";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { HandleSupabaseErrorResponse } from "@/lib/error.handle.lib";
+import { SupabaseResponse } from "@/types/supabase.types";
 
 export default function useSupabase() {
   const [loading, setLoading] = useState(false);
@@ -18,11 +19,15 @@ export default function useSupabase() {
   const resetError = () => setError(null);
 
   const getFetch = async <T = any,>(
-    table: keyof Database["public"]["Tables"]
+    table: keyof Database["public"]["Tables"],
+    page: number = 1,
+    limit: number = 10,
+    filter?: Record<string, any>
   ): Promise<T> => {
     try {
       setLoading(true);
-      const response = await getFromSupabaseTable(table);
+      const response = await getFromSupabaseTable(table, page, limit, filter);
+      console.log(response);
       return response as T;
     } catch (err) {
       console.error(`Error fetching from ${table}:`, err);

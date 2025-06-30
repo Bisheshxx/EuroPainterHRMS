@@ -1,3 +1,4 @@
+import { SidebarNavigation } from "@/components/Navigation/SideBar/SidebarNavigation";
 import React from "react";
 
 export default function RootLayout({
@@ -5,5 +6,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <div className="">{children}</div>;
+  return (
+    <div className="">
+      <SidebarNavigation>{children}</SidebarNavigation>
+    </div>
+  );
 }

@@ -29,9 +29,10 @@ import { CreateProfileDialog } from "./CreateProfileDialog";
 import { Tables } from "../../../../database.types";
 import useUserStore from "@/store";
 import { useEffect } from "react";
+import { Profile } from "@/types/types";
 
 interface IProps {
-  profile: Tables<"employees">;
+  profile: Profile;
 }
 export default function ProfileComponent({ profile }: IProps) {
   ///getuser accound stats through a provider and check user status here
@@ -54,10 +55,10 @@ export default function ProfileComponent({ profile }: IProps) {
             </AvatarFallback>
           </Avatar>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
               {profile.name || "Unknown Employee"}
             </h1>
-            <p className="text-lg text-gray-600">
+            <p className="text-lg text-gray-600 dark:text-neutral-300">
               {profile.position || "Position not specified"}
             </p>
             <div className="flex flex-wrap gap-2 mt-2">
@@ -186,7 +187,7 @@ export default function ProfileComponent({ profile }: IProps) {
                 <p className="text-sm font-medium text-gray-500">
                   Job Reference
                 </p>
-                <p className="text-sm font-mono">{profile.job}</p>
+                <p className="text-sm font-mono">{profile.jobs.name}</p>
               </div>
             )}
           </div>

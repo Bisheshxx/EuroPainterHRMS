@@ -217,14 +217,14 @@ export default function TimesheetPage({ timesheet }: IProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap">
         <div>
           <h1 className="text-3xl font-bold">John Doe - Timesheet</h1>
           <p className="text-muted-foreground">
             Manage your time tracking and hours
           </p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap mt-2 md:mt-0">
           <Input
             type="date"
             value={selectedDate}

@@ -1,3 +1,5 @@
+import { Tables } from "../../database.types";
+
 export interface TimesheetEntry {
   date: string;
   start_time: string | null;
@@ -14,3 +16,9 @@ export interface GroupedTimesheet {
   total_hours: number;
   is_locked: boolean;
 }
+
+export type Profile = Tables<"employees"> & {
+  jobs: {
+    name: string;
+  };
+};

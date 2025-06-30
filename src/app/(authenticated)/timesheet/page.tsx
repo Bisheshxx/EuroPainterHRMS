@@ -8,7 +8,6 @@ export default function Timesheet() {
   const { getFetch } = useSupabase();
   const fetchTimesheets = () => getFetch("timesheets");
   const { loading, error, data } = useApi("timesheet", fetchTimesheets);
-  console.log(data, "tjis is the timesheet");
 
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error.message}</div>;

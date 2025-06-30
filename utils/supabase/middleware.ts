@@ -33,6 +33,30 @@ export async function updateSession(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  // console.log(user);
+
+  if (user && request.nextUrl.pathname.startsWith("/login")) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+  if (user && user.user_metadata.role !== "admin") {
+    const pathname = request.nextUrl.pathname;
+
+    // Allow access to /timesheet
+    if (pathname === "/timesheet") {
+      // allow
+    }
+    // Allow access to /employee/[id] only if [id] matches the user's id
+    else if (
+      pathname.startsWith("/employee/") &&
+      pathname.split("/")[2] === user.id
+    ) {
+      // allow
+    }
+    // Otherwise, redirect to /timesheet
+    else {
+      return NextResponse.redirect(new URL("/timesheet", request.url));
+    }
+  }
   if (
     !user &&
     !request.nextUrl.pathname.startsWith("/login") &&
