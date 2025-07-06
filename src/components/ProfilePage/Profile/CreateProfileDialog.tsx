@@ -1,25 +1,6 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  Mail,
-  Phone,
-  MapPin,
-  DollarSign,
-  Briefcase,
-  FileText,
-  Edit,
-  Plus,
-} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -46,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Edit } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -61,7 +42,6 @@ import z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import useUserStore from "@/store";
 import { Calendar } from "@/components/ui/calendar";
-import useSupabase from "@/Hooks/use-supabase";
 import { updateSupabaseRow } from "@/app/Services/supabase.actions";
 
 interface IProps {
@@ -71,8 +51,6 @@ interface IProps {
 export function CreateProfileDialog({ isOpen = true }: IProps) {
   const [open, setOpen] = useState(isOpen);
   const { profile } = useUserStore();
-  const { updateTable } = useSupabase();
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -87,7 +65,6 @@ export function CreateProfileDialog({ isOpen = true }: IProps) {
       notes: "",
     },
   });
-
   useEffect(() => {
     if (profile) {
       form.reset({
@@ -112,10 +89,10 @@ export function CreateProfileDialog({ isOpen = true }: IProps) {
       profile?.id,
       values
     );
-    console.log(response, "employees", "id", profile?.id, values);
-
-    // form.reset();
-    // setOpen(false);
+    if (response && response.success) {
+      form.reset();
+      setOpen(false);
+    }
   }
 
   return (

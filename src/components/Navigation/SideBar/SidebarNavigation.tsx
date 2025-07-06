@@ -3,7 +3,16 @@
 import type React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Clock, Users, UserCircle, Settings } from "lucide-react";
+import {
+  Home,
+  Clock,
+  Users,
+  UserCircle,
+  Settings,
+  LucideIcon,
+  User,
+  CircleDollarSign,
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -16,38 +25,67 @@ import {
   SidebarTrigger,
   SidebarInset,
 } from "@/components/ui/sidebar";
-import { useRouter } from "next/navigation";
-
-const navigationItems = [
-  {
-    name: "Home",
-    href: "/",
-    icon: Home,
-  },
-  {
-    name: "Timesheet",
-    href: "/timesheet",
-    icon: Clock,
-  },
-  {
-    name: "Customer",
-    href: "/customer",
-    icon: Users,
-  },
-  {
-    name: "Employee",
-    href: "/employee",
-    icon: UserCircle,
-  },
-  {
-    name: "Settings",
-    href: "/settings",
-    icon: Settings,
-  },
-];
+import { useContext, useEffect, useState } from "react";
+import { UserContext } from "@/context/user/Provider";
 
 export function SidebarNavigation({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+
+  const user = useContext(UserContext);
+  const [navigationItems, setNavigationItems] = useState<
+    {
+      name: string;
+      href: string;
+      icon: LucideIcon;
+    }[]
+  >([]);
+
+  useEffect(() => {
+    const isAdmin = user?.user_metadata?.role === "admin";
+    if (isAdmin) {
+      setNavigationItems([
+        {
+          name: "Home",
+          href: "/",
+          icon: Home,
+        },
+        {
+          name: "Payroll",
+          href: "/payroll",
+          icon: CircleDollarSign,
+        },
+        {
+          name: "Customer",
+          href: "/customer",
+          icon: Users,
+        },
+        {
+          name: "Employee",
+          href: "/employee",
+          icon: UserCircle,
+        },
+        {
+          name: "Settings",
+          href: "/settings",
+          icon: Settings,
+        },
+      ]);
+    }
+    if (!isAdmin) {
+      setNavigationItems([
+        {
+          name: "Timesheet",
+          href: "/timesheet",
+          icon: Clock,
+        },
+        {
+          name: "Profile",
+          href: "/profile",
+          icon: User,
+        },
+      ]);
+    }
+  }, [user?.user_metadata?.role]);
 
   return (
     <SidebarProvider>
@@ -66,7 +104,6 @@ export function SidebarNavigation({ children }: { children: React.ReactNode }) {
           <SidebarMenu>
             {navigationItems.map(item => {
               const isActive = pathname === item.href;
-
               return (
                 <SidebarMenuItem key={item.name}>
                   <SidebarMenuButton
@@ -93,8 +130,12 @@ export function SidebarNavigation({ children }: { children: React.ReactNode }) {
                 <span className="font-medium text-gray-700">JD</span>
               </div>
               <div className="group-data-[collapsible=icon]:hidden">
-                <p className="text-sm font-medium">John Doe</p>
-                <p className="text-xs text-muted-foreground">Admin</p>
+                <p className="text-sm font-medium">
+                  {user?.user_metadata?.name}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {user?.user_metadata?.role === "admin" ? "Admin" : "Employee"}
+                </p>
               </div>
             </div>
             <SidebarTrigger className="group-data-[collapsible=icon]:hidden" />
@@ -106,7 +147,15 @@ export function SidebarNavigation({ children }: { children: React.ReactNode }) {
           <SidebarTrigger className="-ml-1" />
           <div className="ml-auto">
             <h1 className="text-lg font-semibold capitalize">
-              {pathname.split("/")}
+              {
+                // Get the last non-empty segment of the path, capitalize it, or show "Home" for "/"
+                (() => {
+                  const segments = pathname.split("/").filter(Boolean);
+                  if (segments.length === 0) return "Home";
+                  const last = segments[segments.length - 1];
+                  return last.charAt(0).toUpperCase() + last.slice(1);
+                })()
+              }
             </h1>
           </div>
         </header>

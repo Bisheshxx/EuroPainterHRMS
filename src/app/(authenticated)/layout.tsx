@@ -1,4 +1,6 @@
+"use client";
 import { SidebarNavigation } from "@/components/Navigation/SideBar/SidebarNavigation";
+import { UserProvider } from "@/context/user/Provider";
 import React from "react";
 
 export default function RootLayout({
@@ -7,8 +9,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className="">
+    <UserProvider>
       <SidebarNavigation>{children}</SidebarNavigation>
-    </div>
+    </UserProvider>
   );
 }

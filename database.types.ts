@@ -162,6 +162,7 @@ export type Database = {
       }
       timesheets: {
         Row: {
+          approved: boolean
           date: string
           description: string | null
           employee_id: string | null
@@ -169,10 +170,13 @@ export type Database = {
           id: string
           is_locked: boolean | null
           job_site: string | null
+          lunch_end_time: string | null
+          lunch_start_time: string | null
           start_time: string | null
           total_hours: number | null
         }
         Insert: {
+          approved?: boolean
           date: string
           description?: string | null
           employee_id?: string | null
@@ -180,10 +184,13 @@ export type Database = {
           id?: string
           is_locked?: boolean | null
           job_site?: string | null
+          lunch_end_time?: string | null
+          lunch_start_time?: string | null
           start_time?: string | null
           total_hours?: number | null
         }
         Update: {
+          approved?: boolean
           date?: string
           description?: string | null
           employee_id?: string | null
@@ -191,6 +198,8 @@ export type Database = {
           id?: string
           is_locked?: boolean | null
           job_site?: string | null
+          lunch_end_time?: string | null
+          lunch_start_time?: string | null
           start_time?: string | null
           total_hours?: number | null
         }
@@ -209,7 +218,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_employees_with_timesheets: {
+        Args: {
+          search_name?: string
+          emp_status?: string
+          page_limit?: number
+          page_number?: number
+          week_start_date?: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       employee_status:

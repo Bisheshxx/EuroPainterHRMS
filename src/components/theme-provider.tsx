@@ -2,17 +2,20 @@
 
 import * as React from "react";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
-import useUser from "@/components/Providers/UserProvider";
-import UserProvider from "@/components/Providers/UserProvider";
 import useGetUser from "@/Hooks/use-user";
+import { UserProvider } from "@/context/user/Provider";
+import { createClient } from "../../utils/supabase/client";
+import { useEffect, useState } from "react";
+import { Tables } from "../../database.types";
+import { CreateProfileDialog } from "./ProfilePage/Profile/CreateProfileDialog";
+import useUserStore from "@/store";
+import { useRouter } from "next/navigation";
 
 interface UserContextType {
   user: any;
   isLoading: boolean;
   error: any;
 }
-
-const UserContext = React.createContext<UserContextType | undefined>(undefined);
 
 export function ThemeProvider({
   children,
@@ -21,8 +24,6 @@ export function ThemeProvider({
   children: React.ReactNode;
   [key: string]: any;
 }) {
-  // const { userContext } = useUser();
-  useGetUser();
   return (
     <NextThemesProvider
       attribute="class"

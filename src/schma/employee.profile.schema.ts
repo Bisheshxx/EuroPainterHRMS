@@ -14,7 +14,7 @@ const validateNZAddress = (address: string) => {
   return hasStreetNumber && (hasStreetName || hasSuburb || hasNZPostalCode);
 };
 
-export const formSchema = z.object({
+export const employeeprofileformSchema = z.object({
   name: z.string().min(2, {
     message: "Name must be at least 2 characters.",
   }),
@@ -38,9 +38,6 @@ export const formSchema = z.object({
   }),
   employment_type: z.string().min(1, {
     message: "Employment type is required.",
-  }),
-  status: z.string().min(1, {
-    message: "Status is required.",
   }),
   payrate: z
     .string()

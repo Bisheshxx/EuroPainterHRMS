@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -26,21 +26,18 @@ import { TimesheetTable } from "./TimesheetTable";
 import { SummaryCards } from "./SummaryCards";
 import { GroupedTimesheet } from "@/types/types";
 import useSupabase from "@/Hooks/use-supabase";
-import { useUser } from "../Providers/UserProvider";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { createClient } from "../../../utils/supabase/client";
+import useUser from "@/Hooks/use-user";
+import { UserContext } from "@/context/user/Provider";
 
-interface IProps {
-  timesheet: Tables<"timesheets">[];
-}
-
-export default function TimesheetPage({ timesheet }: IProps) {
-  const [timesheets, setTimesheets] = useState(timesheet);
+export default function TimesheetPage() {
+  const [timesheets, setTimesheets] = useState<Tables<"timesheets">[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTimesheet, setEditingTimesheet] = useState<any>(null);
   const { insertRow, updateTable, deleteRow } = useSupabase();
-  const { user } = useUser();
+  const user = useContext(UserContext);
   const supabase = createClient();
   const [formData, setFormData] = useState({
     date: "",
@@ -54,33 +51,11 @@ export default function TimesheetPage({ timesheet }: IProps) {
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
-
-  const calculateHours = (startTime: string, endTime: string) => {
-    if (!startTime || !endTime) return 0;
-    const start = new Date(`2000-01-01T${startTime}:00`);
-    const end = new Date(`2000-01-01T${endTime}:00`);
-    const diffMs = end.getTime() - start.getTime();
-    const diffHours = diffMs / (1000 * 60 * 60);
-    return Math.max(0, diffHours);
-  };
-
-  const handleTimeChange = (field: string, value: string) => {
-    const newFormData = { ...formData, [field]: value };
-    if (field === "start_time" || field === "end_time") {
-      const hours = calculateHours(
-        field === "start_time" ? value : formData.start_time,
-        field === "end_time" ? value : formData.end_time
-      );
-      newFormData.total_hours = hours;
-    }
-    setFormData(newFormData);
-  };
-
   const createTimeSheet = async (data: typeof formData) => {
     try {
       const response = await insertRow("timesheets", {
         ...data,
-        employee_id: user?.data?.user?.id,
+        employee_id: user?.id,
       });
       if (response.success && response.data) {
         console.log(
@@ -105,7 +80,7 @@ export default function TimesheetPage({ timesheet }: IProps) {
         editingTimesheet.id,
         {
           ...data,
-          employee_id: user?.data?.user?.id,
+          employee_id: user?.id,
         }
       );
       if (response.success && response.data) {
@@ -137,7 +112,6 @@ export default function TimesheetPage({ timesheet }: IProps) {
 
   const handleEdit = (timesheet: any) => {
     setEditingTimesheet(timesheet);
-    console.log(timesheet, "this is to edit");
     setFormData(timesheet);
     setIsDialogOpen(true);
   };
@@ -165,11 +139,11 @@ export default function TimesheetPage({ timesheet }: IProps) {
     );
   };
 
-  const totalHours = timesheets.reduce(
-    (sum, ts) => sum + (ts.total_hours ?? 0),
-    0
-  );
-  const lockedEntries = timesheets.filter(ts => ts.is_locked).length;
+  const handleLunchTimeUpdate = (updatedTimesheet: any) => {
+    setTimesheets(prev =>
+      prev.map(ts => (ts.id === updatedTimesheet.id ? updatedTimesheet : ts))
+    );
+  };
 
   const getWeekDates = (date: string) => {
     const d = new Date(date);
@@ -219,7 +193,9 @@ export default function TimesheetPage({ timesheet }: IProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold">John Doe - Timesheet</h1>
+          <h1 className="text-3xl font-bold capitalize">
+            {user?.user_metadata?.name.split(" ")[0]} - Timesheet
+          </h1>
           <p className="text-muted-foreground">
             Manage your time tracking and hours
           </p>
@@ -274,6 +250,7 @@ export default function TimesheetPage({ timesheet }: IProps) {
             onEdit={handleEdit}
             onDelete={handleDelete}
             onToggleLock={toggleLock}
+            onLunchTimeUpdate={handleLunchTimeUpdate}
           />
         </CardContent>
       </Card>

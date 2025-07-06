@@ -45,6 +45,10 @@ export async function updateSession(request: NextRequest) {
     if (pathname === "/timesheet") {
       // allow
     }
+    // Allow access to /setup-account
+    else if (pathname === "/setup-account") {
+      // allow - don't redirect
+    }
     // Allow access to /employee/[id] only if [id] matches the user's id
     else if (
       pathname.startsWith("/employee/") &&

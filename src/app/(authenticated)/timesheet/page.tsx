@@ -5,12 +5,5 @@ import useSupabase from "@/Hooks/use-supabase";
 import useApi from "@/Hooks/use-api";
 
 export default function Timesheet() {
-  const { getFetch } = useSupabase();
-  const fetchTimesheets = () => getFetch("timesheets");
-  const { loading, error, data } = useApi("timesheet", fetchTimesheets);
-
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error.message}</div>;
-
-  return <TimesheetPage timesheet={data || []} />;
+  return <TimesheetPage />;
 }
