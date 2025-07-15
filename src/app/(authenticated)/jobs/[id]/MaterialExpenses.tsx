@@ -103,8 +103,8 @@ export default function MaterialExpenses({ expenses, setExpenses }: IProps) {
       };
       setExpenses(prev => [...prev, expense]);
     }
-    // reset();
-    // setIsExpenseDialogOpen(false);
+    reset();
+    setIsExpenseDialogOpen(false);
     toast("New expense has been added to the job.");
   };
 

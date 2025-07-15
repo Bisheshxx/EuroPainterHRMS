@@ -81,11 +81,6 @@ export default function Payroll() {
     setCurrentPage(1);
   };
 
-  const handleSortChange = (value: string) => {
-    setSortBy(value);
-    setCurrentPage(1);
-  };
-
   const handleItemsPerPageChange = (value: string) => {
     setItemsPerPage(Number.parseInt(value));
     setCurrentPage(1);
@@ -248,7 +243,7 @@ export default function Payroll() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        {/* <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Hours</CardTitle>
             <Timer className="h-4 w-4 text-muted-foreground" />
@@ -269,7 +264,7 @@ export default function Payroll() {
             <div className="text-2xl font-bold">{averageHours.toFixed(1)}h</div>
             <p className="text-xs text-muted-foreground">Per employee</p>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
 
       <Card>
