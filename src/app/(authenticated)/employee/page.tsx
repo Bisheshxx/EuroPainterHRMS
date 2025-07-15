@@ -127,27 +127,37 @@ export default function page() {
     }
   };
 
-  const handleStatusChange = (employeeId: string, newStatus: string) => {
+  const handleStatusChange = async (employeeId: string, newStatus: string) => {
     try {
-      //   const updatedEmployees = employees.map(employee =>
-      //     employee.id === employeeId
-      //       ? { ...employee, status: newStatus }
-      //       : employee
-      //   );
-      //   setEmployees(updatedEmployees);
+      const supabase = createClient();
+      const response = await supabase
+        .from("employees")
+        .update([{ status: newStatus }])
+        .eq("id", employeeId)
+        .select();
 
-      if (searchTerm) {
-        handleSearch(searchTerm);
-      } else {
-        // setFilteredEmployees(updatedEmployees);
+      if (response.error) {
+        toast.error(
+          response.error.message ||
+            "Failed to update employee status. Please try again."
+        );
+        return;
       }
-
-      //   const employee = employees.find(e => e.id === employeeId);
-      //   toast.success(
-      //     `${employee?.name}'s status has been changed to ${getStatusLabel(
-      //       newStatus
-      //     )}.`
-      //   );
+      const updatedEmployee = response.data?.[0];
+      if (updatedEmployee) {
+        setEmployees(prev =>
+          prev.map(emp =>
+            emp.id === updatedEmployee.id ? updatedEmployee : emp
+          )
+        );
+        toast.success(
+          `${
+            updatedEmployee.name
+          }'s status has been changed to ${getStatusLabel(
+            updatedEmployee.status
+          )}.`
+        );
+      }
     } catch (error) {
       toast.error("Failed to update employee status. Please try again.");
     }

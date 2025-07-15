@@ -27,6 +27,8 @@ import {
 import { createClient } from "../../../utils/supabase/client";
 import { useState } from "react";
 import { toast } from "sonner";
+import useUserStore from "@/store";
+import { getJobNameById } from "@/lib/utils";
 
 const lunchTimeSchema = z.object({
   startTime: z.string().min(1, "Start time is required"),
@@ -50,6 +52,8 @@ export const TimesheetTable = ({
   onToggleLock,
   onLunchTimeUpdate,
 }: TimesheetTableProps) => {
+  const { jobs } = useUserStore();
+  console.log(jobs);
   const [selectedTimesheetId, setSelectedTimesheetId] = useState<
     string | undefined
   >();
@@ -105,16 +109,11 @@ export const TimesheetTable = ({
 
       if (response.data && response.data.length > 0) {
         const updatedTimesheet = response.data[0];
-
-        // Update the timesheet state in parent component
         if (onLunchTimeUpdate) {
           onLunchTimeUpdate(updatedTimesheet);
         }
-
-        // Reset form
         form.reset();
         setSelectedTimesheetId(undefined);
-
         toast.success("Lunch time updated successfully");
       }
     } catch (error) {
@@ -134,7 +133,7 @@ export const TimesheetTable = ({
             <TableHead className="hidden md:table-cell">Time</TableHead>
             <TableHead className="hidden sm:table-cell">Job Site</TableHead>
             <TableHead className="hidden lg:table-cell">Description</TableHead>
-            <TableHead className="text-center ">Hours</TableHead>
+            <TableHead className=" ">Hours</TableHead>
             <TableHead className="text-center">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -190,21 +189,21 @@ export const TimesheetTable = ({
                         <span className="text-sm text-muted-foreground">
                           {format(new Date(date), "MMM d, yyyy")}
                         </span>
-                        {timesheet.job_site && (
+                        {timesheet.job_site && jobs && (
                           <span className="text-sm text-muted-foreground">
-                            {timesheet.job_site}
+                            {getJobNameById(jobs, timesheet.job_site)}
                           </span>
                         )}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">
-                    {timesheet.job_site || "-"}
+                    {getJobNameById(jobs, timesheet.job_site) || "-"}
                   </TableCell>
                   <TableCell className="hidden lg:table-cell">
                     {timesheet.description || "-"}
                   </TableCell>
-                  <TableCell className="text-right hidden md:table-cell">
+                  <TableCell className="hidden md:table-cell">
                     {(timesheet.total_hours ?? 0).toFixed(2)}h
                   </TableCell>
                   <TableCell>

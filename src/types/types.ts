@@ -34,6 +34,7 @@ type Timesheet = {
   job_site: string | null;
   total_hours: number | null;
   is_locked: boolean | null;
+  approved: boolean;
 };
 
 export type Employee = {
@@ -50,4 +51,22 @@ export type EmployeesWithTimesheetsResponse = {
   total: number;
   week_start_date: string; // ISO date string, e.g. "2025-07-01"
   week_end_date: string; // ISO date string, e.g. "2025-07-07"
+};
+
+type TimesheetTypes = {
+  date: string; // e.g. "2025-07-14"
+  hours: number; // e.g. 7
+  timesheet_id: string; // UUID
+};
+
+type ProjectHour = {
+  projectname: string;
+  hours: TimesheetTypes[];
+};
+
+export type EmployeeProjectHours = {
+  payrate: string; // or you can change to number if you want to parse it later
+  employee_id: string; // UUID
+  employee_name: string;
+  project_hours: ProjectHour[];
 };

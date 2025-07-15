@@ -36,13 +36,20 @@ import {
   TrendingUp,
   ChevronLeft,
   ChevronRight,
+  Check,
+  Edit,
+  X,
 } from "lucide-react";
 import { createClient } from "../../../../utils/supabase/client";
 import { Employee } from "@/types/types";
-import { getMonday } from "@/lib/utils";
+import { getJobNameById, getMonday } from "@/lib/utils";
 import { DatePicker } from "@/components/ui/datepicker";
+import useUserStore from "@/store";
+import { toast } from "sonner";
+import ExportButton from "@/components/payroll/export";
 
 export default function Payroll() {
+  const { jobs } = useUserStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [sortBy, setSortBy] = useState("name");
@@ -178,13 +185,40 @@ export default function Payroll() {
     getEmployeeTimesheets();
   }, [searchTerm, currentPage, selectedDate]);
 
+  const handleApproveTimesheet = async (status: boolean, id: string) => {
+    try {
+      const supabase = createClient();
+      const response = await supabase
+        .from("timesheets")
+        .update([{ approved: status }])
+        .eq("id", id)
+        .select();
+
+      if (response.data && response.data.length > 0) {
+        const updatedTimesheet = response.data[0];
+        setPayroll(prevPayroll =>
+          prevPayroll.map(employee => ({
+            ...employee,
+            timesheets: (employee.timesheets || []).map(ts =>
+              ts.id === updatedTimesheet.id ? { ...ts, approved: status } : ts
+            ),
+          }))
+        );
+        toast.success(status ? "Timesheet approved!" : "Timesheet unapproved!");
+      } else {
+        toast.error("Failed to update timesheet approval status.");
+      }
+    } catch (error) {
+      toast.error("Failed to update timesheet approval status.");
+    }
+  };
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Payroll</h2>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -238,7 +272,6 @@ export default function Payroll() {
         </Card>
       </div>
 
-      {/* Filters and Search */}
       <Card>
         <CardHeader>
           <CardTitle>Employee Timesheets</CardTitle>
@@ -295,10 +328,10 @@ export default function Payroll() {
                 <SelectItem value="50">50 per page</SelectItem>
               </SelectContent>
             </Select>
-            <Button>Export</Button>
+
+            <ExportButton />
           </div>
 
-          {/* Pagination Info */}
           <div className="flex items-center justify-between mb-4">
             <div className="text-sm text-muted-foreground">
               Showing {startIndex + 1} to{" "}
@@ -307,7 +340,6 @@ export default function Payroll() {
             </div>
           </div>
 
-          {/* Employee Accordion */}
           <Accordion type="single" collapsible className="w-full">
             {payroll.map(employee => (
               <AccordionItem key={employee.id} value={employee.id}>
@@ -323,11 +355,10 @@ export default function Payroll() {
                         </div>
                       </div>
                     </div>
-                    {/* Centered status badge */}
+
                     <div className="flex items-center space-x-4">
                       <div className="text-right">
                         <div className="font-semibold">
-                          {/* {employee.totalHours}h */}
                           {employee.total_hours}h
                         </div>
                         <div className="text-sm text-muted-foreground">
@@ -349,7 +380,14 @@ export default function Payroll() {
                           return (
                             <Card
                               key={timesheet.id}
-                              className="border-l-4 border-l-blue-500"
+                              className={
+                                `border-l-4 ` +
+                                (timesheet.approved === true
+                                  ? "border-l-green-500"
+                                  : timesheet.approved === false
+                                  ? "border-l-red-500"
+                                  : "border-l-blue-500")
+                              }
                             >
                               <CardContent className="pt-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -385,7 +423,10 @@ export default function Payroll() {
                                       <MapPin className="h-4 w-4 text-muted-foreground" />
                                       <div>
                                         <div className="font-medium">
-                                          {timesheet.job_site}
+                                          {getJobNameById(
+                                            jobs,
+                                            timesheet.job_site
+                                          )}
                                         </div>
                                         <div className="text-sm text-muted-foreground">
                                           Job Site
@@ -395,12 +436,6 @@ export default function Payroll() {
                                   </div>
                                   <div className="space-y-2">
                                     <div className="flex items-center justify-between">
-                                      <div className="flex items-center space-x-2">
-                                        <FileText className="h-4 w-4 text-muted-foreground" />
-                                        <span className="text-sm font-medium">
-                                          Status:
-                                        </span>
-                                      </div>
                                       <Badge
                                         variant={
                                           timesheet.is_locked
@@ -412,24 +447,53 @@ export default function Payroll() {
                                           ? "Locked"
                                           : "Unlocked"}
                                       </Badge>
-                                    </div>
-                                  </div>
-                                </div>
-                                {/* {timesheet.description && (
-                                  <div className="mt-4 pt-4 border-t">
-                                    <div className="flex items-start space-x-2">
-                                      <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
+                                      <Badge
+                                        variant={
+                                          timesheet.approved
+                                            ? "default"
+                                            : "destructive"
+                                        }
+                                      >
+                                        {timesheet.approved
+                                          ? "Approved"
+                                          : "Un-Approved"}
+                                      </Badge>
                                       <div>
-                                        <div className="text-sm font-medium mb-1">
-                                          Description:
-                                        </div>
-                                        <div className="text-sm text-muted-foreground">
-                                          {timesheet.description}
-                                        </div>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => console.log(timesheet)}
+                                          className="h-8 w-8 sm:h-9 sm:w-9"
+                                        >
+                                          <Edit className="h-2 w-2 md:h-4 md:w-4" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() =>
+                                            handleApproveTimesheet(
+                                              !timesheet.approved,
+                                              timesheet.id
+                                            )
+                                          }
+                                          className="h-8 w-8 sm:h-9 sm:w-9"
+                                        >
+                                          {timesheet.approved ? (
+                                            <X
+                                              className="h-2 w-2 md:h-4 md:w-4"
+                                              color="red"
+                                            />
+                                          ) : (
+                                            <Check
+                                              className="h-2 w-2 md:h-4 md:w-4"
+                                              color="green"
+                                            />
+                                          )}
+                                        </Button>
                                       </div>
                                     </div>
                                   </div>
-                                )} */}
+                                </div>
                               </CardContent>
                             </Card>
                           );
@@ -452,7 +516,6 @@ export default function Payroll() {
             </div>
           )}
 
-          {/* Pagination Controls */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-6">
               <div className="text-sm text-muted-foreground">

@@ -20,24 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   ArrowLeft,
   Clock,
@@ -51,6 +34,8 @@ import {
 import { toast } from "sonner";
 import { createClient } from "../../../../../utils/supabase/client";
 import { Tables } from "../../../../../database.types";
+import MaterialExpenses from "./MaterialExpenses";
+import { PostgrestSingleResponse } from "@supabase/supabase-js";
 
 type Job = Tables<"jobs"> & {
   customer_details?: {
@@ -90,7 +75,7 @@ export default function JobDetailsPage() {
   const router = useRouter();
   const [job, setJob] = useState<Job | null>(null);
   const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
-  const [expenses, setExpenses] = useState<any[]>([]);
+  const [expenses, setExpenses] = useState<Tables<"expenses">[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
   const [newExpense, setNewExpense] = useState({
@@ -147,6 +132,19 @@ export default function JobDetailsPage() {
       setIsLoading(false);
     }
   };
+  const getExpenses = async () => {
+    try {
+      const supabase = createClient();
+      const response: PostgrestSingleResponse<Tables<"expenses">[]> =
+        await supabase.from("expenses").select("*", { count: "exact" });
+      if (response.data) {
+        setExpenses(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching getExpenses:", error);
+      toast.error("Failed to fetch job details");
+    }
+  };
 
   useEffect(() => {
     if (jobId) {
@@ -154,42 +152,20 @@ export default function JobDetailsPage() {
     }
   }, [jobId]);
 
+  useEffect(() => {
+    getExpenses();
+  }, []);
+
   // Calculate totals
   const totalLaborHours = timesheets.reduce(
     (sum, timesheet) => sum + (timesheet.total_hours ?? 0),
     0
   );
-  const totalExpenses = expenses.reduce(
-    (sum, expense) => sum + expense.amount,
+  const totalExpenses = expenses?.reduce(
+    (sum, expense) => sum + (expense.amount ?? 0),
     0
   );
   const totalProjectCost = totalExpenses; // In a real app, you'd add labor costs too
-
-  const handleAddExpense = () => {
-    if (!newExpense.description || !newExpense.amount || !newExpense.date) {
-      toast.error("Please fill in all required fields.");
-      return;
-    }
-
-    const expense = {
-      id: Date.now().toString(),
-      ...newExpense,
-      amount: Number.parseFloat(newExpense.amount),
-    };
-
-    setExpenses([...expenses, expense]);
-    setNewExpense({
-      date: "",
-      description: "",
-      category: "",
-      amount: "",
-      vendor: "",
-      receipt_number: "",
-    });
-    setIsExpenseDialogOpen(false);
-
-    toast("New expense has been added to the job.");
-  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -486,188 +462,8 @@ export default function JobDetailsPage() {
           )}
         </CardContent>
       </Card>
-
       {/* Material Expenses */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center">
-                <Receipt className="h-5 w-5 mr-2" />
-                Material Expenses
-              </CardTitle>
-              <CardDescription>
-                Additional expenses and materials for this job
-              </CardDescription>
-            </div>
-            <Dialog
-              open={isExpenseDialogOpen}
-              onOpenChange={setIsExpenseDialogOpen}
-            >
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Expense
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
-                  <DialogTitle>Add New Expense</DialogTitle>
-                  <DialogDescription>
-                    Add a new material expense or cost to this job.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="expense-date">Date *</Label>
-                      <Input
-                        id="expense-date"
-                        type="date"
-                        value={newExpense.date}
-                        onChange={e =>
-                          setNewExpense({ ...newExpense, date: e.target.value })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="expense-amount">Amount *</Label>
-                      <Input
-                        id="expense-amount"
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        value={newExpense.amount}
-                        onChange={e =>
-                          setNewExpense({
-                            ...newExpense,
-                            amount: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="expense-description">Description *</Label>
-                    <Input
-                      id="expense-description"
-                      placeholder="Enter expense description"
-                      value={newExpense.description}
-                      onChange={e =>
-                        setNewExpense({
-                          ...newExpense,
-                          description: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="expense-category">Category</Label>
-                      <Select
-                        value={newExpense.category}
-                        onValueChange={value =>
-                          setNewExpense({ ...newExpense, category: value })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Materials">Materials</SelectItem>
-                          <SelectItem value="Equipment">Equipment</SelectItem>
-                          <SelectItem value="Safety">Safety</SelectItem>
-                          <SelectItem value="Transportation">
-                            Transportation
-                          </SelectItem>
-                          <SelectItem value="Permits">Permits</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="expense-vendor">Vendor</Label>
-                      <Input
-                        id="expense-vendor"
-                        placeholder="Vendor name"
-                        value={newExpense.vendor}
-                        onChange={e =>
-                          setNewExpense({
-                            ...newExpense,
-                            vendor: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="expense-receipt">Receipt Number</Label>
-                    <Input
-                      id="expense-receipt"
-                      placeholder="Receipt or invoice number"
-                      value={newExpense.receipt_number}
-                      onChange={e =>
-                        setNewExpense({
-                          ...newExpense,
-                          receipt_number: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsExpenseDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button onClick={handleAddExpense}>Add Expense</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Vendor</TableHead>
-                <TableHead>Receipt #</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {expenses.map(expense => (
-                <TableRow key={expense.id}>
-                  <TableCell>{formatDate(expense.date)}</TableCell>
-                  <TableCell>{expense.description}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{expense.category}</Badge>
-                  </TableCell>
-                  <TableCell>{expense.vendor}</TableCell>
-                  <TableCell>
-                    <span className="font-mono text-sm">
-                      {expense.receipt_number}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right font-semibold">
-                    {formatCurrency(expense.amount)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          {expenses.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              No expenses recorded for this job yet.
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <MaterialExpenses expenses={expenses} setExpenses={setExpenses} />
     </div>
   );
 }

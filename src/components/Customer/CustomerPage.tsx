@@ -134,10 +134,6 @@ export default function CustomerPage() {
         throw error;
       }
 
-      console.log("Fetched customers:", data);
-      console.log("Total count:", count);
-      console.log(data, "this is customer");
-
       setCustomers(data || []);
       setFilteredCustomers(data || []);
       setPaginatedCustomers(data || []);

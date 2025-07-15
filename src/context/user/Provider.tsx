@@ -20,7 +20,7 @@ export function UserProvider({ children }: IProps) {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const { user: userResponse, loading, error } = useGetUser();
-  const { profile, setProfile } = useUserStore();
+  const { profile, setProfile, setJobs } = useUserStore();
   const [employeeDetails, setEmployeeDetails] =
     useState<Tables<"employees"> | null>(null);
   useGetUser();
@@ -31,8 +31,6 @@ export function UserProvider({ children }: IProps) {
       if (response.data && response.data.length > 0) {
         const employee = response.data[0];
         setProfile(employee);
-
-        // Only redirect if status is null and we're not already on setup-account page
         if (
           employee.status === null &&
           window.location.pathname !== "/setup-account"
@@ -44,6 +42,19 @@ export function UserProvider({ children }: IProps) {
       console.error("Error fetching employee:", error);
     }
   };
+
+  const getJobs = async () => {
+    try {
+      const supabase = createClient();
+      const response = await supabase.from("jobs").select("*");
+      if (response.data) {
+        setJobs(response.data as Tables<"jobs">[]);
+      }
+      if (response.error) {
+        setJobs([]);
+      }
+    } catch (error) {}
+  };
   useEffect(() => {
     if (userResponse && userResponse?.user_metadata.role !== "admin") {
       getEmployee();
@@ -53,6 +64,7 @@ export function UserProvider({ children }: IProps) {
   useEffect(() => {
     if (userResponse) {
       setUser(userResponse);
+      getJobs();
     }
   }, [userResponse]);
 

@@ -22,6 +22,7 @@ import {
   FormMessage,
 } from "../ui/form";
 import { useContext, useEffect } from "react";
+import JobSelect from "./JobSelect";
 
 const timesheetSchema = z.object({
   date: z.string().min(1, "Date is required"),
@@ -162,11 +163,7 @@ export const TimesheetForm = ({
                 <FormItem>
                   <FormLabel>Job Site</FormLabel>
                   <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="Enter job site location"
-                      value={field.value || ""}
-                    />
+                    <JobSelect field={field} placeholder="Select a job" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
